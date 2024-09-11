@@ -6,11 +6,10 @@ require (
 	github.com/onsi/ginkgo/v2 v2.20.2
 	github.com/onsi/gomega v1.34.1
 	github.com/rs/zerolog v1.33.0
-	github.com/thestuckster/gopherfacts v0.0.0-20240906195959-e6ab8e093c4a
+	github.com/thestuckster/gopherfacts v0.0.0-20240911193236-4dea5dffe820
 )
 
 require (
-	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/go-logr/logr v1.4.2 // indirect
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
