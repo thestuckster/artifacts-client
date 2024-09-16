@@ -2,15 +2,15 @@ package main
 
 import (
 	"artifacts-client/internal"
-	"artifacts-client/internal/devHelpers"
 	"artifacts-client/internal/planner"
-	"fmt"
 	"github.com/rs/zerolog"
 	"github.com/thestuckster/gopherfacts/pkg/clients"
 	"github.com/thestuckster/gopherfacts/pkg/items"
 	"github.com/thestuckster/gopherfacts/pkg/maps"
 	"github.com/thestuckster/gopherfacts/pkg/monsters"
+	"github.com/thestuckster/gopherfacts/pkg/resources"
 	"os"
+	"time"
 )
 
 var logger = zerolog.New(os.Stdout).With().Timestamp().Caller().Logger()
@@ -23,16 +23,18 @@ func main() {
 
 	checkArtifactsServerStatus(sdk)
 
-	itemData, _, _ := preLoadData()
-	logger.Debug().Msg("Parsing item information into hashmaps for faster lookups")
+	itemData, _, _, resourceData := preLoadData()
+	logger.Debug().Msg("Parsing item information")
 	itemsByCode := internal.BuildItemByCode(itemData)
 	_ = internal.BuildItemBySkill(itemData)
 
-	//Throw away testing code
-	mostRequiredMaterials := devHelpers.FindItemsWithMostUniqueCraftingRequirements(itemData)
-	fmt.Printf("Item with most required materials: %+v\n", mostRequiredMaterials)
+	logger.Debug().Msg("Parsing resource information")
+	_ = internal.BuildResourceMapByDropItemCode(resourceData)
 
 	planner.BuildPlanForItem("multislimes_sword", itemsByCode)
+
+	//wait for all cooldowns to process
+	waitForCooldowns()
 
 }
 
@@ -48,14 +50,15 @@ func checkArtifactsServerStatus(sdk *clients.GopherFactClient) {
 	logger.Debug().Msgf("Server status details: %+v", statusInfo)
 }
 
-func preLoadData() (items []items.ItemMetaData, maps []maps.MapData, monsters []monsters.Monster) {
+func preLoadData() (items []items.ItemMetaData, maps []maps.MapData, monsters []monsters.Monster, resources []resources.Resource) {
 	logger.Info().Msg("Preloading important game data...")
 	items = loadItemData()
 	maps = loadMapData()
 	monsters = loadMonsterData()
+	resources = loadResourceData()
 
 	logger.Info().Msg("Preloading finished!")
-	return items, maps, monsters
+	return items, maps, monsters, resources
 }
 
 func loadItemData() []items.ItemMetaData {
@@ -92,4 +95,23 @@ func loadMonsterData() []monsters.Monster {
 
 	logger.Info().Msgf("Loaded %d monsters", len(monsterData))
 	return monsterData
+}
+
+func loadResourceData() []resources.Resource {
+	logger.Info().Msg("Loading ALL resource data")
+	resourceData, err := resources.GetAllResources()
+	if err != nil {
+		logger.Error().Err(err).Msg("Error loading resource data")
+		os.Exit(1)
+	}
+
+	logger.Info().Msgf("Loaded %d resources", len(resourceData))
+	return resourceData
+}
+
+func waitForCooldowns() {
+	//TODO: we just assume 58 seconds for now, later we need to make this smarter by preloading character data and waiting in each thread
+	cooldown := 58
+	logger.Info().Msgf("Waiting for %d seconds before starting characters for all cool downs to finish", cooldown)
+	time.Sleep(time.Duration(cooldown) * time.Second)
 }
