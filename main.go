@@ -2,15 +2,18 @@ package main
 
 import (
 	"artifacts-client/internal"
+	"artifacts-client/internal/characters/billbert"
 	"artifacts-client/internal/planner"
+	"os"
+	"sync"
+	"time"
+
 	"github.com/rs/zerolog"
 	"github.com/thestuckster/gopherfacts/pkg/clients"
 	"github.com/thestuckster/gopherfacts/pkg/items"
 	"github.com/thestuckster/gopherfacts/pkg/maps"
 	"github.com/thestuckster/gopherfacts/pkg/monsters"
 	"github.com/thestuckster/gopherfacts/pkg/resources"
-	"os"
-	"time"
 )
 
 var logger = zerolog.New(os.Stdout).With().Timestamp().Caller().Logger()
@@ -33,9 +36,15 @@ func main() {
 
 	planner.BuildPlanForItem("multislimes_sword", itemsByCode)
 
-	//wait for all cooldowns to process
-	waitForCooldowns()
 
+	if token == "" {
+		logger.Error().Msg("TOKEN is not set, please set the TOKEN environment variable")
+		os.Exit(1)
+	}
+	var wg sync.WaitGroup
+	wg.Add(1)
+	billbert.GameLoop(sdk, &wg)
+	wg.Wait()
 }
 
 func checkArtifactsServerStatus(sdk *clients.GopherFactClient) {
