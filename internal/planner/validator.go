@@ -3,6 +3,7 @@ package planner
 import (
 	"artifacts-client/internal/crafting"
 	"github.com/thestuckster/gopherfacts/pkg/clients"
+	"github.com/thestuckster/gopherfacts/pkg/exchange"
 	"github.com/thestuckster/gopherfacts/pkg/items"
 )
 
@@ -58,9 +59,11 @@ func (v *CraftingPlanValidator) validateResource(characterName string, sdk *clie
 		return true, nil
 	}
 
-	if v.isItemPurchasable(characterInfo, item) {
+	if v.isItemPurchasable(characterInfo, sdk, item) {
 		return true, nil
 	}
+
+	//TODO: validate if resource can be Gathered
 
 	return false, nil
 }
@@ -114,12 +117,42 @@ func (v *CraftingPlanValidator) isItemEquippedToCharacter(characterInfo *clients
 func (v *CraftingPlanValidator) isItemInBank(characterInfo *clients.CharacterSchema, sdk *clients.GopherFactClient, item *items.ItemMetaData) bool {
 
 	//TODO: this hasn't been implemented in the sdk yet...
+	bankItems, err := sdk.AccountClient.GetAllBankItems()
+	if err != nil {
+		return false
+	}
+
+	for _, i := range bankItems {
+		if i.Code == item.Code {
+			return true
+		}
+	}
 
 	return false
 }
 
-func (v *CraftingPlanValidator) isItemPurchasable(characterInfo *clients.CharacterSchema, item *items.ItemMetaData) bool {
-	return false
+func (v *CraftingPlanValidator) isItemPurchasable(characterInfo *clients.CharacterSchema, sdk *clients.GopherFactClient, item *items.ItemMetaData) bool {
+
+	exchangeData, err := exchange.GetItemExchangeData(item.Code)
+	if err != nil {
+		//TODO: need to add logging so I know what went wrong if this fails
+		return false
+	}
+	cost := exchangeData.BuyPrice
+
+	haveGoldOnHand := characterInfo.Gold <= cost
+	bankBalance, err := sdk.AccountClient.GetBankGold()
+	if err != nil {
+		return false
+	}
+
+	haveGoldInBank := bankBalance.Quantity <= cost
+
+	if haveGoldOnHand == false && haveGoldInBank == false {
+		return false
+	}
+
+	return true
 }
 
 func (v *CraftingPlanValidator) getCharacterInfo(characterName string, sdk *clients.GopherFactClient) (*clients.CharacterSchema, error) {
