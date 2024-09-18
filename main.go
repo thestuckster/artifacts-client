@@ -27,6 +27,7 @@ func main() {
 	checkArtifactsServerStatus(sdk)
 
 	itemData, _, _, resourceData := preLoadData()
+
 	logger.Debug().Msg("Parsing item information")
 	itemsByCode := internal.BuildItemByCode(itemData)
 	_ = internal.BuildItemBySkill(itemData)
@@ -35,7 +36,6 @@ func main() {
 	_ = internal.BuildResourceMapByDropItemCode(resourceData)
 
 	planner.BuildPlanForItem("multislimes_sword", itemsByCode)
-
 
 	if token == "" {
 		logger.Error().Msg("TOKEN is not set, please set the TOKEN environment variable")

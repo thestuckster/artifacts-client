@@ -7,7 +7,7 @@ require (
 	github.com/onsi/ginkgo/v2 v2.20.2
 	github.com/onsi/gomega v1.34.1
 	github.com/rs/zerolog v1.33.0
-	github.com/thestuckster/gopherfacts v0.1.2
+	github.com/thestuckster/gopherfacts v0.1.3
 )
 
 require (
