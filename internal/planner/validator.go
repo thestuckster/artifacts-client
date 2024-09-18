@@ -5,10 +5,12 @@ import (
 	"github.com/thestuckster/gopherfacts/pkg/clients"
 	"github.com/thestuckster/gopherfacts/pkg/exchange"
 	"github.com/thestuckster/gopherfacts/pkg/items"
+	"github.com/thestuckster/gopherfacts/pkg/resources"
 )
 
 type CraftingPlanValidator struct {
-	ItemsByCode, ItemsBySkill map[string]items.ItemMetaData
+	itemsByCode, itemsBySkill map[string]items.ItemMetaData
+	resourcesByCode           map[string]resources.Resource
 }
 
 func (v *CraftingPlanValidator) IsItemObtainable(characterName string, sdk *clients.GopherFactClient, node crafting.CraftTreeNode) bool {
@@ -63,7 +65,9 @@ func (v *CraftingPlanValidator) validateResource(characterName string, sdk *clie
 		return true, nil
 	}
 
-	//TODO: validate if resource can be Gathered
+	if v.isItemGatherable(characterInfo, item) {
+		return true, nil
+	}
 
 	return false, nil
 }
@@ -153,6 +157,24 @@ func (v *CraftingPlanValidator) isItemPurchasable(characterInfo *clients.Charact
 	}
 
 	return true
+}
+
+func (v *CraftingPlanValidator) isItemGatherable(characterInfo *clients.CharacterSchema, item *items.ItemMetaData) bool {
+	resource, ok := v.resourcesByCode[item.Code]
+	if !ok {
+		return false
+	}
+
+	switch resource.Skill {
+	case "mining":
+		return characterInfo.MiningLevel >= resource.Level
+	case "woodcutting":
+		return characterInfo.WoodcuttingLevel >= resource.Level
+	case "fishing":
+		return characterInfo.FishingLevel >= resource.Level
+	}
+
+	return false
 }
 
 func (v *CraftingPlanValidator) getCharacterInfo(characterName string, sdk *clients.GopherFactClient) (*clients.CharacterSchema, error) {
